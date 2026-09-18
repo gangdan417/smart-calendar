@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>智能日历</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📅</text></svg>">
 <!-- PWA：手机「添加到主屏幕」后以独立 App 形式运行；本地 file:// 打开时这些声明自动忽略 -->
@@ -56,7 +56,11 @@ input,select{font:inherit;color:inherit}
 /* ================= 顶栏 ================= */
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;position:relative}
 .brand{display:flex;align-items:center;gap:10px}
-.logo{font-size:30px}
+.logo{font-size:30px;display:inline-flex}
+/* 动态日历图标（红条月份 + 当天日号，每天自动变） */
+.dynico{display:inline-flex;flex-direction:column;width:30px;height:30px;border-radius:7px;overflow:hidden;background:var(--card);box-shadow:0 1px 3px rgba(20,30,60,.18),0 0 0 1px var(--line);flex:none}
+.dynico .di-band{background:var(--red);color:#fff;font-size:7.5px;font-weight:700;line-height:1;text-align:center;letter-spacing:.4px;padding:3px 0 2px;font-family:Arial,sans-serif}
+.dynico .di-day{flex:1;display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:14px;font-weight:700;line-height:1;font-family:"Segoe UI",Arial,sans-serif}
 .brand h1{font-size:20px;font-weight:700}
 .brand p{font-size:12px;color:var(--sub)}
 .top-actions{display:flex;align-items:center;gap:8px}
@@ -228,18 +232,54 @@ input,select{font:inherit;color:inherit}
   .cell{min-height:54px;padding:4px 5px}
   .cell .dnum{font-size:14px}
   .cell .cell-sub{font-size:10px}
-  .week-grid{display:flex;overflow-x:auto;padding-bottom:4px}
+  .week-grid{display:flex;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
   .wk-col{min-width:118px;flex:1;min-height:320px}
+  .settings-panel{width:280px;max-width:calc(100vw - 24px)}
 }
 @media (max-width:520px){
-  .app{padding:12px 8px 32px}
-  .brand p{display:none}
+  .app{padding:12px 8px calc(28px + env(safe-area-inset-bottom))}
+  .topbar{margin-bottom:10px}
+  .brand{gap:8px;min-width:0}
+  .brand h1{font-size:17px;white-space:nowrap}
+  /* 顶栏今天信息在手机上用精简文案（正文缩到 0，由 ::after 显示 data-short） */
+  .brand p{font-size:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:calc(100vw - 190px)}
+  .brand p::after{content:attr(data-short);font-size:11px;color:var(--sub)}
+  .dynico{width:28px;height:28px;border-radius:6px}
+  .dynico .di-band{font-size:7px;padding:2.5px 0 1.5px}
+  .dynico .di-day{font-size:13px}
+  .top-actions{gap:6px}
+  .icon-btn{width:34px;height:34px;font-size:15.5px;border-radius:9px}
+  .chip{padding:5px 10px;font-size:12px}
+  .smart-bar{padding:10px 12px;margin-bottom:10px}
+  #smartInput,#searchInput{font-size:16px} /* ≥16px 防 iOS 聚焦自动放大 */
+  .btn{padding:8px 14px}
+  .calendar-card{padding:10px 8px}
+  .cal-header{margin-bottom:8px;gap:6px}
+  .cal-title{font-size:15px}
+  .cal-nav button{min-width:32px;height:30px;font-size:13px}
+  .cal-nav #todayBtn{min-width:40px}
   .legend{display:none}
-  .cell{min-height:46px}
-  .cell .cell-sub{display:none}
+  .cal-week{font-size:10.5px;gap:3px;margin-bottom:4px}
+  .cal-grid{gap:3px}
+  /* 手机月历：数字 + 农历/节日/节气 两行完整显示，事件用底部圆点 */
+  .cell{min-height:58px;padding:3px 3px 4px;border-radius:8px}
+  .cell .dnum{font-size:13px;line-height:1.25}
+  .cell .dnum.is-today{padding:0 5px}
+  .cell .cell-sub{display:block;font-size:8.5px;line-height:1.25;margin-top:1px}
+  .cell .cell-top .badge{font-size:8.5px;padding:1px 3px;border-radius:4px}
   .cell .chips{display:none}
-  .cell .dots{display:flex}
-  .dots{bottom:4px}
+  .cell .dots{display:flex;left:50%;transform:translateX(-50%);bottom:3px;gap:3px}
+  .wk-col{min-width:108px;min-height:300px}
+  .modal{padding:18px 16px}
+  .settings-panel{top:44px}
+  .detail-card{padding:14px}
+}
+@media (max-width:380px){
+  .brand p{max-width:calc(100vw - 160px)}
+  .cell{min-height:54px}
+  .cell .dnum{font-size:12.5px}
+  .cell .cell-sub{font-size:8px}
+  .wk-col{min-width:100px}
 }
 </style>
 </head>
@@ -247,7 +287,7 @@ input,select{font:inherit;color:inherit}
 <div class="app">
   <header class="topbar">
     <div class="brand">
-      <span class="logo">📅</span>
+      <span class="logo" id="dynLogo">📅</span>
       <div><h1>智能日历</h1><p id="todayInfo"></p></div>
     </div>
     <div class="top-actions">
@@ -827,8 +867,11 @@ function renderTodayInfo(){
   const w = '日一二三四五六'[new Date().getDay()];
   const h = new Date().getHours();
   const hello = h < 6 ? '凌晨好' : h < 11 ? '早上好' : h < 14 ? '中午好' : h < 18 ? '下午好' : '晚上好';
-  document.getElementById('todayInfo').textContent =
+  const info = document.getElementById('todayInfo');
+  info.textContent =
     hello + '，今天是 ' + p.y + '年' + p.m + '月' + p.d + '日 星期' + w + ' · 农历' + lu.gzYear + '年' + lu.monthName + lu.dayName;
+  // 手机顶栏用精简文案（CSS 在窄屏改显示 ::after）
+  info.setAttribute('data-short', p.m + '月' + p.d + '日 周' + w + ' · ' + lu.monthName + lu.dayName);
 }
 
 function renderCalTitle(){
@@ -1480,6 +1523,69 @@ function importICS(file){
 }
 
 /* ============================================================
+ * 动态日历图标：favicon、顶栏图标、已安装 App 角标都跟随当天日期
+ * ============================================================ */
+const MONTH_ABBR = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+function roundRectPath(g,x,y,w,h,r){
+  g.beginPath();
+  g.moveTo(x+r,y);
+  g.arcTo(x+w,y,x+w,y+h,r);
+  g.arcTo(x+w,y+h,x,y+h,r);
+  g.arcTo(x,y+h,x,y,r);
+  g.arcTo(x,y,x+w,y,r);
+  g.closePath();
+}
+// 画一张当天日历图标：蓝渐变底 + 白日历 + 红条（白色月份英文）+ 日号
+function drawCalendarIcon(size, date){
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const g = c.getContext('2d');
+  g.clearRect(0,0,size,size);
+  const bg = g.createLinearGradient(0,0,0,size);
+  bg.addColorStop(0,'#5b7cfa'); bg.addColorStop(1,'#3d59dd');
+  roundRectPath(g,0,0,size,size,size*0.22);
+  g.fillStyle = bg; g.fill();
+  const sx=size*0.18, sy=size*0.24, sw=size*0.64, sh=size*0.58, rr=size*0.07;
+  roundRectPath(g,sx,sy,sw,sh,rr);
+  g.fillStyle = '#fff'; g.fill();
+  const hh = size*0.15;
+  g.save();
+  roundRectPath(g,sx,sy,sw,sh,rr); g.clip();
+  g.fillStyle = '#e5484d'; g.fillRect(sx,sy,sw,hh);
+  g.restore();
+  g.fillStyle = '#fff';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = '700 ' + Math.round(size*0.085) + 'px Arial,sans-serif';
+  g.fillText(MONTH_ABBR[date.getMonth()], sx+sw/2, sy+hh/2+0.5);
+  g.fillStyle = '#3d59dd';
+  g.font = '700 ' + Math.round(size*0.30) + 'px "Segoe UI",Arial,sans-serif';
+  g.fillText(String(date.getDate()), sx+sw/2, sy+hh+(sh-hh)/2+size*0.012);
+  return c.toDataURL('image/png');
+}
+let __faviconLink = null;
+function updateFavicon(date){
+  if (!__faviconLink) __faviconLink = document.querySelector('link[rel="icon"]');
+  if (__faviconLink) __faviconLink.href = drawCalendarIcon(128, date);
+}
+function updateLogoMarkup(date){
+  const el = document.getElementById('dynLogo');
+  if (el) el.innerHTML = '<span class="dynico"><span class="di-band">' + MONTH_ABBR[date.getMonth()]
+    + '</span><span class="di-day">' + date.getDate() + '</span></span>';
+}
+// 已安装的 PWA：桌面图标角上显示当天日号（Android Chrome/桌面 Edge 支持，iOS 忽略）
+function updateAppBadge(date){
+  if (navigator.setAppBadge) {
+    try { const p = navigator.setAppBadge(date.getDate()); if (p && p.catch) p.catch(function(){}); } catch(e) {}
+  }
+}
+function updateDynamicIcons(){
+  const now = new Date();
+  updateLogoMarkup(now);
+  updateFavicon(now);
+  updateAppBadge(now);
+}
+
+/* ============================================================
  * 主题
  * ============================================================ */
 function resolvedTheme(){
@@ -1777,23 +1883,36 @@ function init(){
   document.getElementById('densityToggle').checked = store.settings.density === 'compact';
   bindEvents();
   renderAll();
+  updateDynamicIcons();
   renderAccentRow();
   renderCityList();
   loadWeather(false);
   checkReminders();
   setInterval(checkReminders, 30000);
+  // 跨午夜自动刷新：今天信息、月历（今天高亮）、动态图标与角标
+  let dayMark = todayKey();
+  setInterval(function(){
+    if (todayKey() !== dayMark) {
+      dayMark = todayKey();
+      state.view = { y: new Date().getFullYear(), m: new Date().getMonth()+1 };
+      state.selected = dayMark;
+      renderAll();
+      updateDynamicIcons();
+    }
+  }, 60000);
 }
 document.addEventListener('DOMContentLoaded', init);
 
 // 供验证/调试使用
 window.__cal = {solarToLunar, solarTermOf, festivalOf, parseInput, eventsOn, searchEvents, store: () => store,
-  buildICS, importICSText: applyICSText, parseICS, checkReminders, nav, goToday, setMode, state};
+  buildICS, importICSText: applyICSText, parseICS, checkReminders, nav, goToday, setMode, state,
+  drawCalendarIcon, updateDynamicIcons};
 
 /* PWA：线上（http/https）环境注册 Service Worker 以支持离线与安装；
    本地 file:// 双击打开（桌面 exe/启动.vbs 场景）自动跳过，行为与原来完全一致 */
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('sw.js').catch(function(){});
+    navigator.serviceWorker.register('sw.js?v=2').catch(function(){});
   });
 }
 </script>
