@@ -1,6 +1,6 @@
 /* 智能日历 Service Worker：缓存应用外壳实现离线使用。
    策略：同源 GET 请求缓存优先、后台更新；天气等跨域请求不拦截直连网络。 */
-const CACHE = 'smart-cal-v1';
+const CACHE = 'smart-cal-v2';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png'];
 
 self.addEventListener('install', e => {
