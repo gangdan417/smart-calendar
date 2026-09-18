@@ -1,0 +1,15 @@
+{
+  "name": "智能日历",
+  "short_name": "日历",
+  "description": "带农历、节气、节假日调休、智能日程与天气提醒的日历",
+  "lang": "zh-CN",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f4f8",
+  "theme_color": "#4f6ef2",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
